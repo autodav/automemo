@@ -6,7 +6,7 @@ import type { AppData } from '../types'
  * Store "files": foto delle fatture (data URL compressi).
  */
 const DB_NAME = 'automemo'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const LS_STATE = 'automemo:state'
 const LS_FILE_PREFIX = 'automemo:file:'
 
@@ -22,6 +22,8 @@ function openDB(): Promise<IDBDatabase | null> {
         const db = req.result
         if (!db.objectStoreNames.contains('state')) db.createObjectStore('state')
         if (!db.objectStoreNames.contains('files')) db.createObjectStore('files')
+        // "meta": configurazione tecnica (es. notifiche push) letta anche dal service worker; non fa parte del backup
+        if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta')
       }
       req.onsuccess = () => resolve(req.result)
       req.onerror = () => resolve(null)
@@ -110,4 +112,14 @@ export async function requestPersistence(): Promise<boolean> {
     if (navigator.storage?.persist) return await navigator.storage.persist()
   } catch { /* ignore */ }
   return false
+}
+
+/** Metadati tecnici (non inclusi nel backup e non cancellati da clearAll). */
+export async function setMeta(key: string, value: unknown): Promise<void> {
+  const db = await openDB()
+  if (db) await tx(db, 'meta', 'readwrite', (s) => s.put(value, key))
+}
+export async function deleteMeta(key: string): Promise<void> {
+  const db = await openDB()
+  if (db) await tx(db, 'meta', 'readwrite', (s) => s.delete(key))
 }

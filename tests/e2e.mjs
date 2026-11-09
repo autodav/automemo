@@ -428,7 +428,7 @@ await ctx.close()
 
 // ---------- 15. PWA (build https-like su localhost)
 await step('PWA: manifest e service worker registrati (vite preview su localhost)', async () => {
-  const srv = spawn('npx', ['vite', 'preview', '--port', '4319', '--strictPort'], { cwd: root, stdio: 'pipe' })
+  const srv = spawn('npx', ['vite', 'preview', '--port', '4319', '--strictPort'], { cwd: root, stdio: 'pipe', detached: true })
   try {
     await new Promise((r) => setTimeout(r, 2500))
     const c = await browser.newContext({ viewport: { width: 390, height: 844 } })
@@ -445,7 +445,7 @@ await step('PWA: manifest e service worker registrati (vite preview su localhost
     await p.reload()
     await p.getByTestId('add-first-car').waitFor({ timeout: 5000 })
     await c.close()
-  } finally { srv.kill() }
+  } finally { try { process.kill(-srv.pid, 'SIGTERM') } catch {} }
 })
 
 await browser.close()

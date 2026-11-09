@@ -1,5 +1,5 @@
-/* AutoMemo service worker: cache dell'app per l'uso offline. Nessuna notifica push. */
-const CACHE = 'automemo-v1'
+/* AutoMemo service worker: cache dell'app per l'uso offline + notifiche push (Web Push). */
+const CACHE = 'automemo-v2'
 const CORE = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './icons/icon-192.png', './icons/icon-512.png']
 
 self.addEventListener('install', (e) => {
@@ -22,3 +22,60 @@ self.addEventListener('fetch', (e) => {
     return res
   })))
 })
+
+// ---------- Notifiche push
+self.addEventListener('push', (e) => {
+  let data = {}
+  try { data = e.data ? e.data.json() : {} } catch { data = { body: e.data && e.data.text() } }
+  const title = data.title || 'AutoMemo'
+  e.waitUntil(self.registration.showNotification(title, {
+    body: data.body || 'Hai una scadenza in arrivo.',
+    tag: data.tag || 'automemo',
+    renotify: true,
+    icon: './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    lang: 'it',
+    data: { url: data.url || './#/' },
+  }))
+})
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+  const target = new URL((e.notification.data && e.notification.data.url) || './#/', self.registration.scope).href
+  e.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    const win = wins.find((w) => w.url.startsWith(self.registration.scope))
+    if (win) {
+      // app già aperta: la porta in primo piano e apre la scadenza giusta
+      win.postMessage({ type: 'automemo-open', url: target })
+      return win.focus()
+    }
+    return self.clients.openWindow(target)
+  })())
+})
+
+// Il browser ha rinnovato la sottoscrizione: la comunichiamo al server (stesso id anonimo).
+self.addEventListener('pushsubscriptionchange', (e) => {
+  e.waitUntil((async () => {
+    const cfg = await readMeta('push')
+    if (!cfg || !cfg.deviceId || !cfg.apiUrl) return
+    const old = e.oldSubscription
+    const sub = e.newSubscription || (old && await self.registration.pushManager.subscribe(old.options))
+    if (!sub) return
+    await fetch(`${cfg.apiUrl}/api/devices/${cfg.deviceId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON() }) })
+  })().catch(() => undefined))
+})
+
+function readMeta(key) {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('automemo')
+    req.onerror = () => resolve(null)
+    req.onsuccess = () => {
+      const db = req.result
+      if (!db.objectStoreNames.contains('meta')) { db.close(); return resolve(null) }
+      const g = db.transaction('meta').objectStore('meta').get(key)
+      g.onsuccess = () => { resolve(g.result || null); db.close() }
+      g.onerror = () => { resolve(null); db.close() }
+    }
+  })
+}

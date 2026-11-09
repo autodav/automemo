@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CalendarClock, History, Paperclip, Plus, Search } from 'lucide-react'
 import { useStore } from '../store/AppStore'
 import { useActions } from '../components/Actions'
@@ -10,19 +10,28 @@ import { formatEuro, formatKm } from '../lib/format'
 import { navigate } from '../lib/router'
 import { normalize } from '../assistant/ruleProvider'
 
-export function Maintenance({ tab }: { tab: 'scadenze' | 'storico' }) {
+export function Maintenance({ tab, highlight }: { tab: 'scadenze' | 'storico'; highlight?: string }) {
   return (
     <div className="animate-fade-in">
       <PageHeader title={tab === 'scadenze' ? 'Scadenze' : 'Storico'} subtitle={tab === 'scadenze' ? 'Cosa fare e quando' : 'Tutti gli interventi registrati'} />
       <Segmented className="mb-4" value={tab} onChange={(t) => navigate('/' + t, true)} options={[{ value: 'scadenze', label: 'Scadenze' }, { value: 'storico', label: 'Storico' }]} />
-      {tab === 'scadenze' ? <DeadlineList /> : <HistoryList />}
+      {tab === 'scadenze' ? <DeadlineList highlight={highlight} /> : <HistoryList />}
     </div>
   )
 }
 
-function DeadlineList() {
+function DeadlineList({ highlight }: { highlight?: string }) {
   const { data, activeVehicle: v } = useStore()
   const { openDeadline, openLog } = useActions()
+  const [flash, setFlash] = useState(highlight)
+  useEffect(() => {
+    if (!highlight) return
+    setFlash(highlight)
+    const el = document.getElementById('deadline-' + highlight)
+    el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    const t = setTimeout(() => setFlash(undefined), 4000)
+    return () => clearTimeout(t)
+  }, [highlight])
   if (!v) return null
   const infos = vehicleDeadlines(data, v.id)
   return (
@@ -33,7 +42,8 @@ function DeadlineList() {
       ) : infos.map((i) => {
         const s = STATUS_STYLES[i.status]
         return (
-          <Card key={i.deadline.id} className={cx('ring-2', s.ring)} data-testid="deadline-item">
+          <div key={i.deadline.id} id={'deadline-' + i.deadline.id} data-highlighted={flash === i.deadline.id || undefined}>
+          <Card className={cx('ring-2 transition-shadow', flash === i.deadline.id ? 'ring-electric-500 shadow-lg shadow-electric-500/30' : s.ring)} data-testid="deadline-item">
             <div className="flex items-start gap-3">
               <span className={cx('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', s.bg, s.text)}><TypeIcon type={i.deadline.type} /></span>
               <div className="min-w-0 flex-1">
@@ -56,6 +66,7 @@ function DeadlineList() {
               <Button size="sm" className="flex-1" onClick={() => openLog({ type: i.deadline.type, customLabel: i.deadline.customLabel })}>Segna come fatto</Button>
             </div>
           </Card>
+          </div>
         )
       })}
     </div>

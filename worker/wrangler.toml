@@ -1,0 +1,31 @@
+name = "automemo-push"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+# Database D1 con le sottoscrizioni. Creazione: npx wrangler d1 create automemo-push
+# poi sostituire database_id con quello restituito.
+[[d1_databases]]
+binding = "DB"
+database_name = "automemo-push"
+database_id = "e6f8b0f8-be54-42b0-b89d-9a76bd99085f"
+migrations_dir = "migrations"
+
+[vars]
+# Chiave pubblica VAPID (pubblica per definizione). La privata è un secret: npx wrangler secret put VAPID_PRIVATE_KEY
+VAPID_PUBLIC_KEY = "BCVGDmZ5Nb1Z9R5LP4QaFVQPjvm2HFStSkk9yPSyTIa4Bb6MOshw91NVc-gOlntvnGoPLswyV42cmch8nsLZ9Ew"
+VAPID_SUBJECT = "https://autodav.github.io/automemo/"
+ALLOWED_ORIGINS = "https://autodav.github.io"
+TIME_ZONE = "Europe/Rome"
+SEND_HOUR = "8"
+MAX_PUSHES_PER_RUN = "10"
+
+# Controllo giornaliero delle scadenze. Il cron gira ogni 2 minuti tra le 06 e le 10 UTC, ma il Worker invia
+# solo dalle 08:00 ora di Roma (estate e inverno) e a blocchi di 10 notifiche per esecuzione, per restare nei limiti
+# del piano Free (10 ms di CPU e 50 subrequest esterne per esecuzione; ~0,8 ms di CPU per notifica cifrata).
+# Capacità: ~1.200-1.500 notifiche al giorno. Le esecuzioni senza nulla da inviare costano 2 query D1.
+[triggers]
+crons = ["*/2 6-10 * * *"]
+
+[observability]
+enabled = true

@@ -11,7 +11,8 @@
     "icons": "node scripts/make-icons.mjs",
     "test:e2e": "node tests/e2e.mjs",
     "preview": "vite preview",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "test:push": "xvfb-run -a node tests/push-e2e.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.70.0",

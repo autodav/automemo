@@ -24,9 +24,14 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Test backend push (unitari, senza dipendenze)
+        run: node --test worker/test/*.test.ts
       - run: npm run build
         env:
           BASE_PATH: /automemo/
+          # URL del backend push (Cloudflare Worker). Vuoto = notifiche push disattivate.
+          # Si imposta in GitHub: Settings → Secrets and variables → Actions → Variables → PUSH_API_URL
+          VITE_PUSH_API_URL: ${{ vars.PUSH_API_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -11,6 +11,8 @@ import { todayISO } from '../lib/dates'
 import { formatKm, parseKm } from '../lib/format'
 import { isStandalone, useInstallPrompt, canUseServiceWorker } from '../lib/pwa'
 import type { ThemeMode } from '../types'
+import { PushSettings } from '../components/PushSettings'
+import { disablePush, loadPushState } from '../lib/push'
 
 export function Settings() {
   const { data, activeVehicle, setActiveVehicle, updateSettings, resetAll } = useStore()
@@ -31,6 +33,7 @@ export function Settings() {
 
   const wipe = async () => {
     if (!(await confirm({ title: 'Cancellare tutti i dati?', message: 'Verranno eliminati definitivamente tutti i veicoli, interventi, scadenze, spese e foto salvati su questo dispositivo. Ti consigliamo di esportare prima un backup.', confirmLabel: 'Cancella tutto', danger: true }))) return
+    if (loadPushState().enabled) await disablePush()
     await resetAll()
     toast('Tutti i dati sono stati cancellati')
     navigate('/', true)
@@ -62,12 +65,15 @@ export function Settings() {
       </Section>
 
       <Section title="Promemoria">
-        <Card className="space-y-3">
-          <Field label="Avvisami quando mancano (km)" htmlFor="km-warn" hint="Per le scadenze a chilometri: lo stato diventa giallo sotto questa soglia.">
-            <div className="flex gap-2"><Input id="km-warn" inputMode="numeric" value={kmWarn} onChange={(e) => setKmWarn(e.target.value)} /><Button onClick={saveKmWarn}>Salva</Button></div>
-          </Field>
-          <Notice className="flex gap-2"><BellOff size={16} className="mt-0.5 shrink-0" /><span>I promemoria (30, 15, 7 e 1 giorno prima) si impostano su ogni scadenza e compaiono <strong>dentro l’app</strong>. Le notifiche push con l’app chiusa non sono ancora disponibili: richiedono un server dedicato che questa versione non ha.</span></Notice>
-        </Card>
+        <div className="space-y-3">
+          <PushSettings />
+          <Card className="space-y-3">
+            <Field label="Avvisami quando mancano (km)" htmlFor="km-warn" hint="Per le scadenze a chilometri: lo stato diventa giallo sotto questa soglia.">
+              <div className="flex gap-2"><Input id="km-warn" inputMode="numeric" value={kmWarn} onChange={(e) => setKmWarn(e.target.value)} /><Button onClick={saveKmWarn}>Salva</Button></div>
+            </Field>
+            <Notice className="flex gap-2"><BellOff size={16} className="mt-0.5 shrink-0" /><span>I giorni di preavviso (30, 15, 7 e 1) si scelgono su ogni scadenza e valgono sia per i promemoria <strong>dentro l’app</strong> sia, se attive, per le notifiche push.</span></Notice>
+          </Card>
+        </div>
       </Section>
 
       <Section title="Backup e dati">

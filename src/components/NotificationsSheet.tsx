@@ -33,7 +33,7 @@ export function NotificationsSheet({ open, onClose, onOpenDeadlines }: { open: b
             )
           })
         )}
-        <Notice>I promemoria sono visibili quando apri AutoMemo. Le notifiche push con l’app chiusa non sono disponibili in questa versione.</Notice>
+        <Notice>Questi promemoria sono visibili quando apri AutoMemo. Per riceverli anche ad app chiusa attiva le notifiche push in Impostazioni (se disponibili sul tuo dispositivo).</Notice>
       </div>
     </Sheet>
   )

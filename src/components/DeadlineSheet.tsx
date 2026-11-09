@@ -139,7 +139,7 @@ export function DeadlineSheet({ state, onClose }: { state: DeadlineSheetState | 
           </div>
         )}
 
-        <Field label="Promemoria nell’app" hint="Riceverai un avviso dentro AutoMemo quando mancano questi giorni. Le notifiche push non sono disponibili in questa versione.">
+        <Field label="Promemoria" hint="Avviso dentro AutoMemo e, se hai attivato le notifiche push in Impostazioni, anche sul telefono ad app chiusa.">
           <ReminderPicker value={reminders} onChange={setReminders} />
         </Field>
         <Field label="Note (facoltative)" htmlFor="dl-notes"><Textarea id="dl-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Es. intervallo indicato a pag. 210 del libretto" /></Field>
