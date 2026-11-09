@@ -29,3 +29,4 @@ AutoMemo.html
 screenshots
 tests/e2e-results.txt
 *.tsbuildinfo
+dist-push

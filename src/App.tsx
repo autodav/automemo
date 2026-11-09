@@ -21,6 +21,7 @@ import { navigate, useRoute } from './lib/router'
 import { activeReminders } from './lib/deadlines'
 import { formatKm } from './lib/format'
 import { requestPersistence } from './lib/db'
+import { syncPush } from './lib/push'
 
 export default function App() {
   return (
@@ -58,6 +59,43 @@ function Shell() {
 
   useEffect(() => { if (data.vehicles.length) requestPersistence() }, [data.vehicles.length])
 
+  // Notifiche push: ri-sincronizza (solo dati minimi) quando cambiano scadenze o preferenze
+  useEffect(() => {
+    if (!ready) return
+    const t = setTimeout(() => { syncPush(data).catch(() => undefined) }, 1500)
+    return () => clearTimeout(t)
+  }, [ready, data])
+  useEffect(() => {
+    const onVisible = () => document.visibilityState === 'visible' && syncPush(data).catch(() => undefined)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [data])
+
+  // Clic su una notifica con l'app già aperta: il service worker indica quale scadenza aprire
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    const onMsg = (e: MessageEvent) => {
+      if (e.data?.type === 'automemo-open' && typeof e.data.url === 'string') {
+        const hash = new URL(e.data.url).hash.replace(/^#/, '')
+        if (hash) navigate(hash)
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', onMsg)
+    return () => navigator.serviceWorker.removeEventListener('message', onMsg)
+  }, [])
+
+  // Link dalle notifiche: #/scadenze?v=<veicolo>&d=<scadenza>
+  const [highlight, setHighlight] = useState<string | undefined>()
+  useEffect(() => {
+    if (!ready || !route.includes('?')) return
+    const [path, query] = route.split('?')
+    const q = new URLSearchParams(query)
+    const v = q.get('v')
+    if (v && data.vehicles.some((x) => x.id === v)) setActiveVehicle(v)
+    setHighlight(q.get('d') || undefined)
+    navigate(path, true)
+  }, [ready, route, data.vehicles, setActiveVehicle])
+
   const actions: Actions = useMemo(() => ({
     openLog: (s) => setLog(s ?? {}),
     openDeadline: (s) => setDeadline(s ?? {}),
@@ -68,7 +106,7 @@ function Shell() {
   const closeDeadline = useCallback(() => setDeadline(null), [])
   const closeExpense = useCallback(() => setExpense(null), [])
 
-  const tabKey = route === '/' ? 'home' : route.slice(1)
+  const tabKey = route.split('?')[0] === '/' ? 'home' : route.split('?')[0].slice(1)
   useEffect(() => { window.scrollTo(0, 0) }, [tabKey])
 
   const reminders = activeReminders(data)
@@ -84,10 +122,10 @@ function Shell() {
   }
   if (!data.vehicles.length) return <Welcome />
 
-  const tab = route === '/' ? 'home' : route.slice(1)
+  const tab = tabKey
   let screen: React.ReactNode
   switch (tab) {
-    case 'scadenze': screen = <Maintenance tab="scadenze" />; break
+    case 'scadenze': screen = <Maintenance tab="scadenze" highlight={highlight} />; break
     case 'storico': screen = <Maintenance tab="storico" />; break
     case 'spese': screen = <Expenses />; break
     case 'chiedi': screen = <Assistant />; break
