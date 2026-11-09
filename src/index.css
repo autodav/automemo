@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-night-950: #050B1A;
+  --color-night-900: #0A1430;
+  --color-night-800: #111D40;
+  --color-night-700: #1A2954;
+  --color-night-600: #253769;
+  --color-electric-300: #8CC8FF;
+  --color-electric-400: #4DA8FF;
+  --color-electric-500: #2F7BFF;
+  --color-electric-600: #1C5FE0;
+  --color-cyan-glow: #22D3EE;
+  --animate-fade-in: fade-in 0.25s ease-out both;
+  --animate-slide-up: slide-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  --animate-pop: pop 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes slide-up {
+    from { transform: translateY(100%); }
+    to { transform: none; }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.94); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
+html, body, #root { min-height: 100%; }
+body {
+  @apply bg-slate-50 text-night-900 antialiased dark:bg-night-950 dark:text-slate-100;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+input, select, textarea, button { font: inherit; }
+input[type="date"] { min-height: 2.75rem; }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top { padding-top: env(safe-area-inset-top); }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
